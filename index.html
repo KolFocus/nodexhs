@@ -62,19 +62,20 @@
             </select>
         </div>
         <div class="row">
-            <input id="crypto-url" type="text" placeholder="当 type=xs 时需填写 url">
+            <input id="crypto-url" type="text" placeholder="当 type=xs 时需填写 url" value="https://example.com/api/resource?foo=bar">
         </div>
         <div class="row" style="margin-top:8px;">
-            <input id="crypto-body" type="text" placeholder="当 type=xs 时可填写 requestBody（可空）">
+            <input id="crypto-body" type="text" placeholder="当 type=xs 时可填写 requestBody（可空）" value='{"sample":"value"}'>
         </div>
         <div class="row" style="margin-top:8px;">
-            <input id="crypto-a1" type="text" placeholder="当 type=xs 时可填写 a1（可空）">
+            <input id="crypto-a1" type="text" placeholder="当 type=xs 时可填写 a1（可空）" value="mock-a1-token">
         </div>
         <div class="row" style="margin-top:8px;">
-            <input id="crypto-route" type="text" placeholder="当 type=pgy 时填写 route（如 /user/list）">
+            <input id="crypto-route" type="text" placeholder="当 type=pgy 时填写 route（如 /user/list）" value="/user/list">
         </div>
         <div class="row" style="margin-top:10px;">
             <button id="btn-crypto" class="secondary">获取加密信息</button>
+            <button id="btn-crypto-quick">一键测试（使用默认 xs 参数）</button>
         </div>
         <div class="status" id="crypto-status"></div>
         <pre class="status" id="crypto-output" style="background:#f9fafb;padding:12px;border-radius:8px;border:1px solid #e5e7eb;max-height:260px;overflow:auto;"></pre>
@@ -138,6 +139,11 @@
             }
         });
 
+        const setCryptoDefaults = () => {
+            const typeSel = (document.getElementById('crypto-type'));
+            typeSel.value = 'xs';
+        };
+
         $('btn-crypto').addEventListener('click', async () => {
             const type = (document.getElementById('crypto-type')).value;
             const url = (document.getElementById('crypto-url')).value.trim();
@@ -158,7 +164,7 @@
                 const resp = await fetch('/api/crypto', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: type === 'xs' ? 'anything_not_search_id' : type, url, requestBody, a1, route })
+                    body: JSON.stringify({ type, url, requestBody, a1, route })
                 });
                 const data = await resp.json().catch(() => ({}));
                 const ok = resp.ok;
@@ -169,6 +175,14 @@
                 outputEl.textContent = '';
             }
         });
+
+        $('btn-crypto-quick').addEventListener('click', async () => {
+            setCryptoDefaults();
+            $('btn-crypto').click();
+        });
+
+        // 页面加载后默认选择 xs，方便直接测试
+        setCryptoDefaults();
     </script>
 </body>
 </html>
