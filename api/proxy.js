@@ -1,72 +1,53 @@
-const http = require('node:http');
-const https = require('node:https');
+const xhsCrypto = require('../GenXsAndCommon');
+const { encryptSign } = require('../pgy_encryptSign');
 
 module.exports = (req, res) => {
-    if (req.method !== 'GET') {
+    if (req.method === 'GET') {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ message: 'ok' }));
+    }
+    if (req.method !== 'POST') {
         res.statusCode = 405;
-        res.setHeader('Content-Type', 'text/plain');
-        return res.end('Method Not Allowed');
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ error: 'Method Not Allowed' }));
     }
 
-    const host = req.headers.host || 'localhost';
-    const url = new URL(req.url, `http://${host}`);
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => {
+        body += chunk;
+    });
+    req.on('end', () => {
+        try {
+            const jsonData = JSON.parse(body || '{}');
 
-    if (url.pathname === '/api/proxy' && url.searchParams.has('url')) {
-        const imageUrl = url.searchParams.get('url');
-
-        // 仅允许 http/https 协议
-        if (!/^https?:\/\//i.test(imageUrl)) {
-            res.statusCode = 400;
-            res.setHeader('Content-Type', 'text/plain');
-            return res.end('Only HTTP/HTTPS URLs are supported');
-        }
-
-        const client = imageUrl.startsWith('https://') ? https : http;
-
-        const request = client.get(imageUrl, (imageRes) => {
-            // 处理 3xx 跳转（追踪一次或有限次避免循环）
-            if (imageRes.statusCode && imageRes.statusCode >= 300 && imageRes.statusCode < 400 && imageRes.headers.location) {
-                const redirectUrl = imageRes.headers.location;
-                const nextClient = redirectUrl.startsWith('https://') ? https : http;
-                return nextClient.get(redirectUrl, (redirectRes) => {
-                    if (redirectRes.statusCode === 200) {
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', redirectRes.headers['content-type'] || 'application/octet-stream');
-                        redirectRes.pipe(res);
-                    } else {
-                        res.statusCode = redirectRes.statusCode || 502;
-                        res.setHeader('Content-Type', 'text/plain');
-                        res.end('Error fetching the image');
-                    }
-                }).on('error', (err) => {
-                    console.error(err);
-                    res.statusCode = 500;
-                    res.setHeader('Content-Type', 'text/plain');
-                    res.end('Error fetching the image');
-                });
-            }
-            if (imageRes.statusCode === 200) {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', imageRes.headers['content-type'] || 'application/octet-stream');
-                imageRes.pipe(res);
+            let resMsg = '';
+            if (jsonData.type === 'request_id') {
+                const resObject = xhsCrypto.getRequestId();
+                resMsg = JSON.stringify(resObject).replace(/"/g, '');
+            } else if (jsonData.type === 'pgy') {
+                const now = Date.now();
+                const resObject = encryptSign(jsonData.route, undefined, now);
+                resMsg = JSON.stringify(resObject).replace(/"/g, '');
+            } else if (jsonData.type !== 'search_id') {
+                const resObject = xhsCrypto.getXs(jsonData.url, jsonData.requestBody, jsonData.a1);
+                resMsg = JSON.stringify(resObject);
             } else {
-                res.statusCode = imageRes.statusCode || 502;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('Error fetching the image');
+                const resObject = xhsCrypto.generate_search_id();
+                resMsg = resObject;
             }
-        });
 
-        request.on('error', (err) => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ message: '请求成功', data: resMsg }));
+        } catch (err) {
             console.error(err);
-            res.statusCode = 500;
-            res.setHeader('Content-Type', 'text/plain');
-            res.end('Error fetching the image');
-        });
-    } else {
-        res.statusCode = 400;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('Image URL is required');
-    }
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ error: 'Invalid JSON' }));
+        }
+    });
 };
 
 
