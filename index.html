@@ -50,6 +50,37 @@
         <p class="hint">重写路由：<code>/proxy</code> -&gt; <code>/api/proxy</code>（见 <code>vercel.json</code>）。你也可以直接访问 <a href="/proxy?url=https://placebear.com/200/200">/proxy?url=...</a> 验证。</p>
     </div>
 
+    <div class="card" style="margin-top:16px;">
+        <h2 style="font-size:18px;margin:0 0 10px;">加密信息获取测试</h2>
+        <div class="row" style="margin-bottom:8px;">
+            <label for="crypto-type" class="hint">类型：</label>
+            <select id="crypto-type" style="padding:8px;border:1px solid #d1d5db;border-radius:6px;">
+                <option value="request_id">request_id</option>
+                <option value="pgy">pgy</option>
+                <option value="xs">xs（默认）</option>
+                <option value="search_id">search_id</option>
+            </select>
+        </div>
+        <div class="row">
+            <input id="crypto-url" type="text" placeholder="当 type=xs 时需填写 url">
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <input id="crypto-body" type="text" placeholder="当 type=xs 时可填写 requestBody（可空）">
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <input id="crypto-a1" type="text" placeholder="当 type=xs 时可填写 a1（可空）">
+        </div>
+        <div class="row" style="margin-top:8px;">
+            <input id="crypto-route" type="text" placeholder="当 type=pgy 时填写 route（如 /user/list）">
+        </div>
+        <div class="row" style="margin-top:10px;">
+            <button id="btn-crypto" class="secondary">获取加密信息</button>
+        </div>
+        <div class="status" id="crypto-status"></div>
+        <pre class="status" id="crypto-output" style="background:#f9fafb;padding:12px;border-radius:8px;border:1px solid #e5e7eb;max-height:260px;overflow:auto;"></pre>
+        <p class="hint">接口路径：<code>/api/crypto</code>，POST JSON：{ type, url, requestBody, a1, route }</p>
+    </div>
+
     <script>
         const $ = (id) => document.getElementById(id);
 
@@ -104,6 +135,38 @@
                 img.src = proxied;
             } catch (e) {
                 setStatus(statusEl, '请求失败: ' + (e && e.message ? e.message : e), false);
+            }
+        });
+
+        $('btn-crypto').addEventListener('click', async () => {
+            const type = (document.getElementById('crypto-type')).value;
+            const url = (document.getElementById('crypto-url')).value.trim();
+            const requestBody = (document.getElementById('crypto-body')).value.trim();
+            const a1 = (document.getElementById('crypto-a1')).value.trim();
+            const route = (document.getElementById('crypto-route')).value.trim();
+            const statusEl = $('crypto-status');
+            const outputEl = $('crypto-output');
+            outputEl.textContent = '';
+
+            if (type === 'xs' && !url) {
+                setStatus(statusEl, '当 type=xs 时，url 必填', false);
+                return;
+            }
+
+            setStatus(statusEl, '请求中...', true);
+            try {
+                const resp = await fetch('/api/crypto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: type === 'xs' ? 'anything_not_search_id' : type, url, requestBody, a1, route })
+                });
+                const data = await resp.json().catch(() => ({}));
+                const ok = resp.ok;
+                setStatus(statusEl, `状态码: ${resp.status}`, ok);
+                outputEl.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                setStatus(statusEl, '请求失败: ' + (e && e.message ? e.message : e), false);
+                outputEl.textContent = '';
             }
         });
     </script>
