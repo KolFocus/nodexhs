@@ -1,8 +1,12 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.js": { "maxDuration": 30, "memory": 1024 }
+  },
   "rewrites": [
     { "source": "/proxy", "destination": "/api/proxy" },
-    { "source": "/crypto", "destination": "/api/crypto" }
+    { "source": "/crypto", "destination": "/api/crypto" },
+    { "source": "/excel", "destination": "/api/excel" }
   ]
 }
 
