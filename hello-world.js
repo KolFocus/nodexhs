@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
         let resMsg = '';
           console.log('请求接口成功');
         if(jsonData.type == 'request_id'){
-            console.log('进入request_id加密信息获取逻辑');
+            console.log('进入request_id加密信息获取逻辑1111');
             var resObject= xhsCrypto.getRequestId(); // 调用 getRequestId 方法获取加密相关信息
             resMsg = JSON.stringify(resObject);
             resMsg = resMsg.replace(/"/g, '')
