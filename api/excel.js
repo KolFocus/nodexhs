@@ -35,6 +35,16 @@ function fetchImageBuffer(url) {
     });
 }
 
+/** 判断图片类型，仅返回 'png' | 'jpeg'，其他返回 null */
+function detectPngOrJpeg(buffer) {
+    if (!buffer || buffer.length < 12) return null;
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) return 'png';
+    // JPEG: FF D8 ... FF D9（这里只检测开头）
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8) return 'jpeg';
+    return null;
+}
+
 /**
  * 主处理：
  * - 仅支持 .xlsx（ExcelJS 不支持 .xls）
@@ -75,31 +85,34 @@ async function processWorkbook(buffer) {
                 if (headerName.includes('图') || headerName.includes('头像')) {
                     try {
                         const imgBuf = await fetchImageBuffer(cellText);
+                        const type = detectPngOrJpeg(imgBuf);
+                        if (!type) {
+                            // 非 PNG/JPEG，不插入，避免 ExcelJS 抛错
+                            continue;
+                        }
                         let dimensions = { width: 120, height: 120 };
                         try {
                             const size = imageSize(imgBuf);
                             if (size && size.width && size.height) {
-                                dimensions = { width: size.width, height: size.height };
+                                // 限制最大尺寸，避免过大图片导致体积/渲染异常
+                                const MAX = 480;
+                                let w = size.width;
+                                let h = size.height;
+                                const scale = Math.min(1, MAX / Math.max(w, h));
+                                dimensions = { width: Math.round(w * scale), height: Math.round(h * scale) };
                             }
                         } catch (_) {}
 
-                        // 统一转为 PNG，ExcelJS 需要指定图片类型
-                        // 这里不强制转换格式，仅按最常见类型判断，无法判断则按 PNG 处理
-                        const lower = cellText.toLowerCase();
-                        const extType = lower.endsWith('.jpg') || lower.endsWith('.jpeg') ? 'jpeg' : lower.endsWith('.webp') ? 'png' : lower.endsWith('.gif') ? 'gif' : 'png';
-                        const imageId = workbook.addImage({ buffer: imgBuf, extension: extType });
-
-                        // ExcelJS 坐标从 0 开始；将图片锚定在当前单元格左上角
+                        const imageId = workbook.addImage({ buffer: imgBuf, extension: type });
                         worksheet.addImage(imageId, {
                             tl: { col: c - 1, row: r - 1 },
                             ext: { width: dimensions.width, height: dimensions.height },
                             editAs: 'oneCell'
                         });
-
-                        // 清空文本
                         cell.value = '';
-                    } catch (_) {
-                        // 下载失败则保留原文本
+                    } catch (e) {
+                        // 单元格级别吞错，继续处理其他单元格
+                        console.error('Image insert error at row ' + r + ', col ' + c + ':', e && e.message ? e.message : e);
                     }
                 }
             }
