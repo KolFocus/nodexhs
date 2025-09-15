@@ -1,7 +1,16 @@
-const http = require('node:http');
-const https = require('node:https');
-const ExcelJS = require('exceljs');
-const imageSize = require('image-size');
+const http = require('http');
+const https = require('https');
+
+let ExcelJS = null;
+let imageSize = null;
+async function ensureDeps() {
+    if (!ExcelJS) {
+        try { ExcelJS = require('exceljs'); } catch (e) { throw new Error('DEPENDENCY_MISSING: exceljs'); }
+    }
+    if (!imageSize) {
+        try { imageSize = require('image-size'); } catch (e) { throw new Error('DEPENDENCY_MISSING: image-size'); }
+    }
+}
 
 /**
  * 读取请求体为 Buffer（用于接收前端直接 POST 的二进制 .xlsx 文件）
@@ -78,6 +87,7 @@ function detectPngOrJpeg(buffer) {
  *   2) 表头包含“图”或“头像”的列，将文本视为图片 URL，抓取并插入图片
  */
 async function processWorkbook(buffer) {
+    await ensureDeps();
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
 
@@ -191,6 +201,11 @@ module.exports = async (req, res) => {
     } catch (e) {
         const msg = e && e.message ? e.message : String(e);
         console.error(e);
+        if (msg.startsWith('DEPENDENCY_MISSING')) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            return res.end('依赖缺失，请确认已安装 exceljs 与 image-size');
+        }
         if (msg === 'FILE_TOO_LARGE') {
             res.statusCode = 413;
             res.setHeader('Content-Type', 'text/plain; charset=utf-8');
