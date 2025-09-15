@@ -82,6 +82,16 @@
         <p class="hint">接口路径：<code>/api/crypto</code>，POST JSON：{ type, url, requestBody, a1, route }</p>
     </div>
 
+    <div class="card" style="margin-top:16px;">
+        <h2 style="font-size:18px;margin:0 0 10px;">Excel 处理（上传 .xlsx 并下载处理结果）</h2>
+        <div class="row">
+            <input id="excel-file" type="file" accept=".xlsx" />
+            <button id="btn-excel" class="secondary">上传并处理</button>
+        </div>
+        <div class="status" id="excel-status"></div>
+        <p class="hint">服务端接口：<code>/api/excel</code>，POST 原始二进制 .xlsx，响应为处理后的 .xlsx</p>
+    </div>
+
     <script>
         const $ = (id) => document.getElementById(id);
 
@@ -190,6 +200,41 @@
 
         // 页面加载后默认选择 xs，方便直接测试
         setCryptoDefaults();
+
+        // Excel 上传并处理
+        $('btn-excel').addEventListener('click', async () => {
+            const f = (document.getElementById('excel-file')).files[0];
+            const statusEl = $('excel-status');
+            if (!f) {
+                setStatus(statusEl, '请先选择 .xlsx 文件', false);
+                return;
+            }
+            if (!f.name.toLowerCase().endsWith('.xlsx')) {
+                setStatus(statusEl, '仅支持 .xlsx（不支持 .xls）', false);
+                return;
+            }
+            setStatus(statusEl, '上传处理中...', true);
+            try {
+                const resp = await fetch('/api/excel', { method: 'POST', body: f });
+                if (!resp.ok) {
+                    const text = await resp.text();
+                    setStatus(statusEl, `处理失败: ${resp.status} ${text}`, false);
+                    return;
+                }
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'processed.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                setStatus(statusEl, '处理完成，已开始下载', true);
+            } catch (e) {
+                setStatus(statusEl, '请求失败: ' + (e && e.message ? e.message : e), false);
+            }
+        });
     </script>
 </body>
 </html>
