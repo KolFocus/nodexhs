@@ -95,7 +95,7 @@
             const el = $('health-status');
             setStatus(el, '检查中...', true);
             try {
-                const resp = await fetch('/api/proxy', { redirect: 'manual' });
+                const resp = await fetch('/api/proxy', { redirect: 'follow' });
                 const text = await resp.text();
                 const ok = resp.status === 400 || resp.status === 405 || resp.status === 200;
                 setStatus(el, `状态码: ${resp.status}\n响应体: ${text}`, ok);
