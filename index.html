@@ -123,7 +123,7 @@
 
             setStatus(statusEl, '请求中...', true);
             try {
-                const proxied = `/proxy?url=${encodeURIComponent(url)}`;
+                const proxied = `${encodeURIComponent(url)}`;
                 // 直接将图片地址赋给 img，由浏览器完成加载与显示
                 img.onload = () => {
                     preview.style.display = 'block';
