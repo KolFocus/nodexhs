@@ -30,7 +30,7 @@
         <h2 style="font-size:18px;margin:0 0 10px;">健康检查</h2>
         <div class="row">
             <button id="btn-health">检查函数可达性</button>
-            <span class="hint">期望返回 400（缺少参数）也代表函数可达</span>
+            <span class="hint">检查 `/api/crypto` 是否返回 200</span>
         </div>
         <div class="status" id="health-status"></div>
 
@@ -95,9 +95,9 @@
             const el = $('health-status');
             setStatus(el, '检查中...', true);
             try {
-                const resp = await fetch('/api/proxy', { redirect: 'follow' });
+                const resp = await fetch('/api/crypto');
                 const text = await resp.text();
-                const ok = resp.status === 400 || resp.status === 405 || resp.status === 200;
+                const ok = resp.status === 200;
                 setStatus(el, `状态码: ${resp.status}\n响应体: ${text}`, ok);
             } catch (e) {
                 setStatus(el, '请求失败: ' + (e && e.message ? e.message : e), false);
