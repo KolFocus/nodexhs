@@ -9,7 +9,17 @@ const imageSize = require('image-size');
 function readRequestBody(req) {
     return new Promise((resolve, reject) => {
         const chunks = [];
-        req.on('data', (c) => chunks.push(c));
+        let total = 0;
+        const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15MB 上限，避免超大文件触发平台限制
+        req.on('data', (c) => {
+            total += c.length;
+            if (total > MAX_UPLOAD_BYTES) {
+                reject(new Error('FILE_TOO_LARGE'));
+                req.destroy();
+                return;
+            }
+            chunks.push(c);
+        });
         req.on('end', () => resolve(Buffer.concat(chunks)));
         req.on('error', reject);
     });
@@ -22,16 +32,31 @@ function fetchImageBuffer(url) {
     return new Promise((resolve, reject) => {
         if (!/^https?:\/\//i.test(url)) return reject(new Error('Only http/https supported'));
         const client = url.startsWith('https://') ? https : http;
-        client.get(url, (res) => {
+        const req = client.get(url, (res) => {
             if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 return fetchImageBuffer(res.headers.location).then(resolve).catch(reject);
             }
             if (res.statusCode !== 200) return reject(new Error('HTTP ' + res.statusCode));
             const chunks = [];
-            res.on('data', (c) => chunks.push(c));
+            let total = 0;
+            const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 单图 2MB 上限
+            res.on('data', (c) => {
+                total += c.length;
+                if (total > MAX_IMAGE_BYTES) {
+                    reject(new Error('IMAGE_TOO_LARGE'));
+                    req.destroy();
+                    return;
+                }
+                chunks.push(c);
+            });
             res.on('end', () => resolve(Buffer.concat(chunks)));
             res.on('error', reject);
-        }).on('error', reject);
+        });
+        // 8 秒超时
+        req.setTimeout(8000, () => {
+            req.destroy(new Error('TIMEOUT'));
+        });
+        req.on('error', reject);
     });
 }
 
@@ -63,6 +88,8 @@ async function processWorkbook(buffer) {
         const maxRow = worksheet.rowCount;
         const maxCol = worksheet.columnCount;
 
+        let insertedCount = 0;
+        const MAX_IMAGES = 30; // 单工作表最多插入 30 张图片
         for (let r = 2; r <= maxRow; r++) {
             const row = worksheet.getRow(r);
             for (let c = 1; c <= maxCol; c++) {
@@ -83,6 +110,9 @@ async function processWorkbook(buffer) {
 
                 // 2) 插入图片
                 if (headerName.includes('图') || headerName.includes('头像')) {
+                    if (insertedCount >= MAX_IMAGES) {
+                        continue; // 超出上限，跳过插图
+                    }
                     try {
                         const imgBuf = await fetchImageBuffer(cellText);
                         const type = detectPngOrJpeg(imgBuf);
@@ -110,6 +140,7 @@ async function processWorkbook(buffer) {
                             editAs: 'oneCell'
                         });
                         cell.value = '';
+                        insertedCount++;
                     } catch (e) {
                         // 单元格级别吞错，继续处理其他单元格
                         console.error('Image insert error at row ' + r + ', col ' + c + ':', e && e.message ? e.message : e);
@@ -124,6 +155,11 @@ async function processWorkbook(buffer) {
 }
 
 module.exports = async (req, res) => {
+    if (req.method === 'GET') {
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.end('excel api ok');
+    }
     if (req.method !== 'POST') {
         res.statusCode = 405;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -139,16 +175,30 @@ module.exports = async (req, res) => {
             return res.end('请上传 .xlsx 文件（不支持 .xls）');
         }
 
-        const processed = await processWorkbook(data);
+        let processed;
+        try {
+            processed = await processWorkbook(data);
+        } catch (e) {
+            console.error('Workbook load/process error:', e && e.message ? e.message : e);
+            res.statusCode = 400;
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            return res.end('Excel 解析失败，请确认为有效的 .xlsx');
+        }
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename="processed.xlsx"');
         res.end(processed);
     } catch (e) {
+        const msg = e && e.message ? e.message : String(e);
         console.error(e);
+        if (msg === 'FILE_TOO_LARGE') {
+            res.statusCode = 413;
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            return res.end('文件过大，最大 15MB');
+        }
         res.statusCode = 500;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.end('服务器错误: ' + (e && e.message ? e.message : String(e)));
+        res.end('服务器错误: ' + msg);
     }
 };
 
