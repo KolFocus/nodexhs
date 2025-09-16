@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "exceljs": "^4.4.0",
+    "image-size": "^1.1.1"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
