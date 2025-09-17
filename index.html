@@ -3,239 +3,218 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Image Proxy 服务面板</title>
+    <title>NodeXHS - 智能Excel处理工具</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; color: #1f2937; }
-        h1 { font-size: 22px; margin: 0 0 8px; }
-        p { margin: 6px 0 18px; color: #4b5563; }
-        .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; max-width: 860px; }
-        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        input[type="text"] { flex: 1 1 420px; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
-        button { padding: 10px 14px; background: #111827; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-        button.secondary { background: #2563eb; }
-        button:disabled { opacity: .6; cursor: not-allowed; }
-        .status { margin-top: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
-        .preview { margin-top: 16px; max-width: 100%; border: 1px dashed #d1d5db; border-radius: 8px; padding: 12px; }
-        .hint { font-size: 12px; color: #6b7280; }
-        .ok { color: #047857; }
-        .bad { color: #b91c1c; }
-        a { color: #2563eb; text-decoration: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; 
+            background: #f5f5f5; 
+            color: #333; 
+            line-height: 1.6;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 40px; 
+        }
+        .header h1 { 
+            font-size: 2.5rem; 
+            color: #2c3e50; 
+            margin-bottom: 10px; 
+        }
+        .header p { 
+            font-size: 1.1rem; 
+            color: #666; 
+        }
+        .section { 
+            margin-bottom: 50px; 
+        }
+        .section-title { 
+            display: flex; 
+            align-items: center; 
+            font-size: 1.5rem; 
+            color: #2c3e50; 
+            margin-bottom: 20px; 
+        }
+        .section-title .icon { 
+            margin-right: 10px; 
+            font-size: 1.2rem; 
+        }
+        .tools-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 20px; 
+        }
+        .tool-card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            transition: transform 0.2s, box-shadow 0.2s; 
+            cursor: pointer;
+        }
+        .tool-card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15); 
+        }
+        .tool-header { 
+            display: flex; 
+            align-items: center; 
+            margin-bottom: 15px; 
+        }
+        .tool-icon { 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-right: 12px; 
+            font-size: 1.2rem; 
+        }
+        .tool-name { 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            color: #2c3e50; 
+        }
+        .tool-desc { 
+            color: #666; 
+            font-size: 0.9rem; 
+            line-height: 1.4; 
+        }
+        .upload-area { 
+            border: 2px dashed #ddd; 
+            border-radius: 8px; 
+            padding: 20px; 
+            text-align: center; 
+            margin: 15px 0; 
+            transition: border-color 0.2s; 
+        }
+        .upload-area:hover { 
+            border-color: #007bff; 
+        }
+        .upload-area.dragover { 
+            border-color: #007bff; 
+            background: #f8f9ff; 
+        }
+        .btn { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 0.9rem; 
+            transition: background 0.2s; 
+        }
+        .btn:hover { 
+            background: #0056b3; 
+        }
+        .btn:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+        }
+        .status { 
+            margin-top: 10px; 
+            padding: 10px; 
+            border-radius: 6px; 
+            font-size: 0.9rem; 
+        }
+        .status.success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        .status.error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+        .status.info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            border: 1px solid #bee5eb; 
+        }
+        .preview { 
+            margin-top: 15px; 
+            text-align: center; 
+        }
+        .preview img { 
+            max-width: 100%; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .hidden { 
+            display: none; 
+        }
     </style>
 </head>
 <body>
-    <h1>Image Proxy 服务面板</h1>
-    <p>用于快速验证部署是否成功，并测试 <code>/api/proxy?url=...</code> 路由。</p>
-
-    <div class="card" id="panel">
-        <h2 style="font-size:18px;margin:0 0 10px;">健康检查</h2>
-        <div class="row">
-            <button id="btn-health">检查函数可达性</button>
-            <span class="hint">检查 `/api/crypto` 是否返回 200</span>
-        </div>
-        <div class="status" id="health-status"></div>
-
-        <hr style="margin:18px 0;border:none;border-top:1px solid #e5e7eb;">
-
-        <h2 style="font-size:18px;margin:0 0 10px;">图片代理测试</h2>
-        <div class="row">
-            <input id="img-url" type="text" placeholder="输入源图片地址（支持 http:// 与 https://，示例：https://placebear.com/300/200）">
-            <button id="btn-test" class="secondary">通过代理获取</button>
-        </div>
-        <div class="status" id="test-status"></div>
-        <div class="preview" id="preview" style="display:none;">
-            <img id="preview-img" alt="预览" style="max-width:100%;height:auto;display:block;">
+    <div class="container">
+        <div class="header">
+            <h1>NodeXHS</h1>
+            <p>快捷提效工具 - 让数据处理更简单</p>
         </div>
 
-        <p class="hint" style="margin-top:14px;">提示：已支持 <code>http://</code> 与 <code>https://</code> 源。</p>
-        <p class="hint">直接访问 <a href="/api/proxy?url=https://placebear.com/200/200">/api/proxy?url=...</a> 验证（不依赖重写）。</p>
+        <!-- 热门工具 -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon">🚀</span>
+                <span>DT热门工具</span>
+            </div>
+            <div class="tools-grid">
+                <!-- Excel智能处理 -->
+                <a class="tool-card" id="excel-card" href="/pages/excel.html" style="text-decoration:none; color: inherit;">
+                    <div class="tool-header">
+                        <div class="tool-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            📊
+                        </div>
+                        <div class="tool-name">Excel智能处理</div>
+                    </div>
+                    <div class="tool-desc">上传 .xlsx，自动转换链接并插入图片</div>
+                </a>
+
+                <!-- 图片代理服务 -->
+                <a class="tool-card" id="proxy-card" href="/pages/proxy.html" style="text-decoration:none; color: inherit;">
+                    <div class="tool-header">
+                        <div class="tool-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                            🖼️
+                        </div>
+                        <div class="tool-name">图片代理服务</div>
+                    </div>
+                    <div class="tool-desc">跨域图片代理与预览</div>
+                </a>
+
+                <!-- 加密信息生成 -->
+                <a class="tool-card" id="crypto-card" href="/pages/crypto.html" style="text-decoration:none; color: inherit;">
+                    <div class="tool-header">
+                        <div class="tool-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                            🔐
+                        </div>
+                        <div class="tool-name">加密信息生成</div>
+                    </div>
+                    <div class="tool-desc">生成 request_id / pgy / xs / search_id</div>
+                </a>
+
+                <!-- 系统健康检查 -->
+                <a class="tool-card" id="health-card" href="/pages/health.html" style="text-decoration:none; color: inherit;">
+                    <div class="tool-header">
+                        <div class="tool-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                            💚
+                        </div>
+                        <div class="tool-name">系统健康检查</div>
+                    </div>
+                    <div class="tool-desc">快速检查接口可达性</div>
+                </a>
+            </div>
+        </div>
+
     </div>
-
-    <div class="card" style="margin-top:16px;">
-        <h2 style="font-size:18px;margin:0 0 10px;">加密信息获取测试</h2>
-        <div class="row" style="margin-bottom:8px;">
-            <label for="crypto-type" class="hint">类型：</label>
-            <select id="crypto-type" style="padding:8px;border:1px solid #d1d5db;border-radius:6px;">
-                <option value="request_id">request_id</option>
-                <option value="pgy">pgy</option>
-                <option value="xs">xs（默认）</option>
-                <option value="search_id">search_id</option>
-            </select>
-        </div>
-        <div class="row">
-            <input id="crypto-url" type="text" placeholder="当 type=xs 时需填写 url" value="https://example.com/api/resource?foo=bar">
-        </div>
-        <div class="row" style="margin-top:8px;">
-            <input id="crypto-body" type="text" placeholder="当 type=xs 时可填写 requestBody（可空）" value='{"sample":"value"}'>
-        </div>
-        <div class="row" style="margin-top:8px;">
-            <input id="crypto-a1" type="text" placeholder="当 type=xs 时可填写 a1（可空）" value="mock-a1-token">
-        </div>
-        <div class="row" style="margin-top:8px;">
-            <input id="crypto-route" type="text" placeholder="当 type=pgy 时填写 route（如 /user/list）" value="/user/list">
-        </div>
-        <div class="row" style="margin-top:10px;">
-            <button id="btn-crypto" class="secondary">获取加密信息</button>
-            <button id="btn-crypto-quick">一键测试（使用默认 xs 参数）</button>
-        </div>
-        <div class="status" id="crypto-status"></div>
-        <pre class="status" id="crypto-output" style="background:#f9fafb;padding:12px;border-radius:8px;border:1px solid #e5e7eb;max-height:260px;overflow:auto;"></pre>
-        <p class="hint">接口路径：<code>/api/crypto</code>，POST JSON：{ type, url, requestBody, a1, route }</p>
     </div>
-
-    <div class="card" style="margin-top:16px;">
-        <h2 style="font-size:18px;margin:0 0 10px;">Excel 处理（上传 .xlsx 并下载处理结果）</h2>
-        <div class="row">
-            <input id="excel-file" type="file" accept=".xlsx" />
-            <button id="btn-excel" class="secondary">上传并处理</button>
-        </div>
-        <div class="status" id="excel-status"></div>
-        <p class="hint">服务端接口：<code>/api/excel</code>，POST 原始二进制 .xlsx，响应为处理后的 .xlsx</p>
-    </div>
-
-    <script>
-        const $ = (id) => document.getElementById(id);
-
-        const setStatus = (el, text, ok) => {
-            el.innerText = text;
-            el.classList.remove('ok','bad');
-            el.classList.add(ok ? 'ok' : 'bad');
-        };
-
-        $('btn-health').addEventListener('click', async () => {
-            const el = $('health-status');
-            setStatus(el, '检查中...', true);
-            try {
-                const resp = await fetch('/api/crypto');
-                const text = await resp.text();
-                const ok = resp.status === 200;
-                setStatus(el, `状态码: ${resp.status}\n响应体: ${text}`, ok);
-            } catch (e) {
-                setStatus(el, '请求失败: ' + (e && e.message ? e.message : e), false);
-            }
-        });
-
-        $('btn-test').addEventListener('click', async () => {
-            const url = $('img-url').value.trim();
-            const statusEl = $('test-status');
-            const preview = $('preview');
-            const img = $('preview-img');
-            preview.style.display = 'none';
-            img.src = '';
-
-            if (!url) {
-                setStatus(statusEl, '请先输入图片 URL', false);
-                return;
-            }
-            if (!/^https?:\/\//i.test(url)) {
-                setStatus(statusEl, '仅支持 http:// 或 https://', false);
-                return;
-            }
-
-            setStatus(statusEl, '请求中...', true);
-            try {
-                const proxied = `/api/proxy?url=${encodeURIComponent(url)}`;
-                // 直接将图片地址赋给 img，由浏览器完成加载与显示
-                img.onload = () => {
-                    preview.style.display = 'block';
-                    setStatus(statusEl, '加载成功', true);
-                };
-                img.onerror = () => {
-                    preview.style.display = 'none';
-                    setStatus(statusEl, '加载失败（可能为跨域或源无效）', false);
-                };
-                img.src = proxied;
-            } catch (e) {
-                setStatus(statusEl, '请求失败: ' + (e && e.message ? e.message : e), false);
-            }
-        });
-
-        const setCryptoDefaults = () => {
-            const typeSel = (document.getElementById('crypto-type'));
-            typeSel.value = 'xs';
-        };
-
-        $('btn-crypto').addEventListener('click', async () => {
-            const type = (document.getElementById('crypto-type')).value;
-            const url = (document.getElementById('crypto-url')).value.trim();
-            const requestBody = (document.getElementById('crypto-body')).value.trim();
-            const a1 = (document.getElementById('crypto-a1')).value.trim();
-            const route = (document.getElementById('crypto-route')).value.trim();
-            const statusEl = $('crypto-status');
-            const outputEl = $('crypto-output');
-            outputEl.textContent = '';
-
-            if (type === 'xs' && !url) {
-                setStatus(statusEl, '当 type=xs 时，url 必填', false);
-                return;
-            }
-
-            setStatus(statusEl, '请求中...', true);
-            try {
-                let resp = await fetch('/api/crypto', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, url, requestBody, a1, route })
-                });
-                if (resp.status === 404) {
-                    resp = await fetch('/crypto', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type, url, requestBody, a1, route })
-                    });
-                }
-                const data = await resp.json().catch(() => ({}));
-                const ok = resp.ok;
-                setStatus(statusEl, `状态码: ${resp.status}`, ok);
-                outputEl.textContent = JSON.stringify(data, null, 2);
-            } catch (e) {
-                setStatus(statusEl, '请求失败: ' + (e && e.message ? e.message : e), false);
-                outputEl.textContent = '';
-            }
-        });
-
-        $('btn-crypto-quick').addEventListener('click', async () => {
-            setCryptoDefaults();
-            $('btn-crypto').click();
-        });
-
-        // 页面加载后默认选择 xs，方便直接测试
-        setCryptoDefaults();
-
-        // Excel 上传并处理
-        $('btn-excel').addEventListener('click', async () => {
-            const f = (document.getElementById('excel-file')).files[0];
-            const statusEl = $('excel-status');
-            if (!f) {
-                setStatus(statusEl, '请先选择 .xlsx 文件', false);
-                return;
-            }
-            if (!f.name.toLowerCase().endsWith('.xlsx')) {
-                setStatus(statusEl, '仅支持 .xlsx（不支持 .xls）', false);
-                return;
-            }
-            setStatus(statusEl, '上传处理中...', true);
-            try {
-                const resp = await fetch('/api/excel', { method: 'POST', body: f });
-                if (!resp.ok) {
-                    const text = await resp.text();
-                    setStatus(statusEl, `处理失败: ${resp.status} ${text}`, false);
-                    return;
-                }
-                const blob = await resp.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'processed.xlsx';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                setStatus(statusEl, '处理完成，已开始下载', true);
-            } catch (e) {
-                setStatus(statusEl, '请求失败: ' + (e && e.message ? e.message : e), false);
-            }
-        });
-    </script>
 </body>
 </html>
 

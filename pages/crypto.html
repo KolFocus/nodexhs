@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>加密信息生成 - NodeXHS</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:#f5f5f7; color:#1f2937; margin:0; }
+        .container { max-width: 960px; margin: 0 auto; padding: 24px; }
+        .breadcrumb { font-size: 14px; margin-bottom: 12px; }
+        .breadcrumb a { color: #2563eb; text-decoration: none; }
+        h1 { font-size: 24px; margin-bottom: 8px; }
+        p.desc { color:#6b7280; margin-bottom: 16px; }
+        .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px; }
+        select, input[type=text]{ width:100%; padding:10px; border:1px solid #d1d5db; border-radius:8px; margin-bottom:10px; }
+        .btn{ padding:10px 14px; border:none; background:#2563eb; color:#fff; border-radius:8px; cursor:pointer; }
+        .status{ margin-top:12px; padding:10px; border-radius:8px; }
+        .status.info{ background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+        .status.success{ background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
+        .status.error{ background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+        pre{ background:#f8f9fa; border:1px solid #e5e7eb; padding:12px; border-radius:8px; max-height:260px; overflow:auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="breadcrumb"><a href="/">← 返回首页</a></div>
+        <h1>加密信息生成</h1>
+        <p class="desc">生成各类加密信息（request_id / pgy / xs / search_id）。</p>
+        <div class="card">
+            <select id="crypto-type">
+                <option value="request_id">request_id</option>
+                <option value="pgy">pgy</option>
+                <option value="xs">xs（默认）</option>
+                <option value="search_id">search_id</option>
+            </select>
+            <input id="crypto-url" type="text" placeholder="当 type=xs 时填写 URL" value="https://example.com/api/resource?foo=bar">
+            <button id="btn-crypto" class="btn">生成</button>
+            <div id="crypto-status" class="status info" style="display:none;"></div>
+            <pre id="crypto-output" style="display:none;"></pre>
+        </div>
+    </div>
+
+    <script>
+        const $ = (id) => document.getElementById(id);
+        const show = (el, text, cls) => { el.textContent = text; el.className = 'status ' + (cls||'info'); el.style.display='block'; };
+
+        $('btn-crypto').addEventListener('click', async () => {
+            const type = $('crypto-type').value;
+            const url = $('crypto-url').value.trim();
+            const statusEl = $('crypto-status');
+            const outputEl = $('crypto-output'); outputEl.style.display='none'; outputEl.textContent='';
+            if (type === 'xs' && !url) { show(statusEl, '❌ 当 type=xs 时，URL 必填', 'error'); return; }
+            show(statusEl, '🔄 生成中...', 'info');
+            try {
+                let resp = await fetch('/api/crypto', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, url }) });
+                if (resp.status === 404) { resp = await fetch('/crypto', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type, url }) }); }
+                const data = await resp.json().catch(()=>({}));
+                show(statusEl, `✅ 状态码: ${resp.status}`, resp.ok ? 'success' : 'error');
+                outputEl.textContent = JSON.stringify(data, null, 2); outputEl.style.display='block';
+            } catch (e) { show(statusEl, '❌ 请求失败: ' + (e && e.message ? e.message : e), 'error'); }
+        });
+    </script>
+</body>
+</html>
+
+
